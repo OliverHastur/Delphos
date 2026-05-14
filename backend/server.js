@@ -21,6 +21,29 @@ app.get('/', (req, res) => {
     res.send('O Oráculo de Delphos está a escutar...');
 });
 
+// A Forja: Adicionar um novo Códice ao templo
+app.post('/livros', async (req, res) => {
+    try {
+        const { titulo, autor, url_capa, paginas } = req.body;
+        
+        // Validação básica de pilares
+        if (!titulo || !autor) {
+            return res.status(400).json({ error: 'Um códice precisa ter pelo menos Título e Autor.' });
+        }
+        
+        const result = await pool.query(
+            `INSERT INTO livros (titulo, autor, url_capa, paginas, status) 
+             VALUES ($1, $2, $3, $4, 'QUERO_LER') RETURNING *`,
+            [titulo, autor, url_capa || null, paginas ? parseInt(paginas) : null]
+        );
+        
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('Erro ao forjar novo códice:', err.message);
+        res.status(500).json({ error: 'Erro interno na forja do templo.' });
+    }
+});
+
 // Rota Principal: Invocar todos os Códices com os seus respectivos Estigmas (Tags)
 app.get('/livros', async (req, res) => {
     try {
@@ -80,18 +103,36 @@ app.get('/livros/:id', async (req, res) => {
 // Vincular um novo Estigma (Tag) a um Códice
 app.post('/livros/:id/estigmas', async (req, res) => {
     try {
-        const { id } = req.params;
-        const { estigma_id } = req.body;
+        const livro_id = parseInt(req.params.id);
+        const estigma_id = parseInt(req.body.estigma_id);
+
+        if (isNaN(livro_id) || isNaN(estigma_id)) {
+            return res.status(400).json({ error: 'Identificadores inválidos para a cerimônia.' });
+        }
         
-        // O "ON CONFLICT DO NOTHING" impede que o banco dê erro se você tentar adicionar a mesma tag duas vezes
         await pool.query(
             'INSERT INTO livro_estigma (livro_id, estigma_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [id, estigma_id]
+            [livro_id, estigma_id]
         );
         res.json({ message: 'Estigma gravado com sucesso na pedra.' });
     } catch (err) {
         console.error('Erro ao vincular estigma:', err.message);
         res.status(500).json({ error: 'Erro interno no templo.' });
+    }
+});
+
+// Forja de Estigmas: Criar uma nova tag global
+app.post('/estigmas', async (req, res) => {
+    try {
+        const { nome } = req.body;
+        const result = await pool.query(
+            'INSERT INTO estigmas_tags (nome) VALUES ($1) RETURNING *',
+            [nome]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Erro ao forjar novo estigma:', err.message);
+        res.status(500).json({ error: 'Este estigma já existe ou o templo está instável.' });
     }
 });
 

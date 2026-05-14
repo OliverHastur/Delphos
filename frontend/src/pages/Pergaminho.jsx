@@ -21,6 +21,7 @@ function Pergaminho() {
   const [novoConteudo, setNovoConteudo] = useState('');
   const [novoPersonagem, setNovoPersonagem] = useState({ nome: '', papel: '', descricao: '' });
   const [estigmaSelecionado, setEstigmaSelecionado] = useState('');
+  const [novoEstigmaNome, setNovoEstigmaNome] = useState(''); // Estado para criar nova tag
   const [loading, setLoading] = useState(true);
 
   const [modoEdicao, setModoEdicao] = useState(false);
@@ -55,7 +56,7 @@ function Pergaminho() {
     try {
       const notaFormatada = notaEdit === '' ? null : parseInt(notaEdit);
       await axios.put(`http://localhost:3333/livros/${id}/julgamento`, { status: statusEdit, nota: notaFormatada });
-      carregarSantuario(); // Recarrega para atualizar os dados
+      carregarSantuario();
       setModoEdicao(false);
     } catch (error) {
       console.error("Erro ao alterar o destino da obra:", error);
@@ -88,10 +89,21 @@ function Pergaminho() {
     if (!estigmaSelecionado) return;
     try {
       await axios.post(`http://localhost:3333/livros/${id}/estigmas`, { estigma_id: parseInt(estigmaSelecionado) });
-      carregarSantuario(); // Atualiza a página para mostrar a nova tag
+      carregarSantuario(); 
       setEstigmaSelecionado('');
     } catch (error) {
       console.error("Erro ao vincular estigma:", error);
+    }
+  };
+
+  const forjarEstigma = async () => {
+    if (!novoEstigmaNome.trim()) return;
+    try {
+      await axios.post('http://localhost:3333/estigmas', { nome: novoEstigmaNome });
+      setNovoEstigmaNome('');
+      carregarSantuario(); // Recarrega para buscar a nova tag criada
+    } catch (error) {
+      console.error("Erro ao forjar novo estigma:", error);
     }
   };
 
@@ -129,32 +141,56 @@ function Pergaminho() {
             </div>
           </div>
 
-          {/* EXIBIÇÃO E ADIÇÃO DE ESTIGMAS (TAGS) */}
+          {/* EXIBIÇÃO E GESTÃO DE ESTIGMAS (TAGS) */}
           <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '15px' }}>
               {livro.estigmas && livro.estigmas.map(tag => (
-                <span key={tag.id} style={{ padding: '4px 10px', backgroundColor: '#222', color: 'var(--text-secondary)', borderRadius: '4px', border: '1px solid #444', fontSize: '0.8rem' }}>
+                <span key={tag.id} style={{ 
+                  padding: '4px 12px', 
+                  backgroundColor: '#1a1a1a', 
+                  color: 'var(--text-secondary)', 
+                  borderRadius: '20px', 
+                  border: '1px solid #333', 
+                  fontSize: '0.75rem',
+                  letterSpacing: '0.5px'
+                }}>
                   {tag.nome}
                 </span>
               ))}
             </div>
             
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: '#111', padding: '10px', borderRadius: '4px', border: '1px solid #222', flexWrap: 'wrap' }}>
               <select 
                 value={estigmaSelecionado} 
                 onChange={(e) => setEstigmaSelecionado(e.target.value)}
-                style={{ padding: '6px', backgroundColor: '#111', color: 'var(--text-primary)', border: '1px solid #444', borderRadius: '4px', fontFamily: 'Lora, serif', fontSize: '0.9rem' }}
+                style={{ padding: '6px', backgroundColor: '#000', color: 'var(--text-primary)', border: '1px solid #444', borderRadius: '4px', fontFamily: 'Lora, serif', fontSize: '0.85rem' }}
               >
-                <option value="">Selecione um Estigma...</option>
+                <option value="">Vincular Estigma Existente...</option>
                 {estigmasDisponiveis.map(tag => (
                   <option key={tag.id} value={tag.id}>{tag.nome}</option>
                 ))}
               </select>
               <button 
                 onClick={vincularEstigma}
-                style={{ backgroundColor: 'transparent', color: 'var(--accent-gold)', border: '1px solid var(--accent-gold)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
+                style={{ backgroundColor: 'var(--accent-gold)', color: 'var(--bg-dark)', border: 'none', padding: '7px 15px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
               >
-                + Adicionar
+                Vincular
+              </button>
+
+              <div style={{ width: '1px', height: '20px', backgroundColor: '#333', margin: '0 10px' }}></div>
+
+              <input 
+                type="text" 
+                placeholder="Novo Estigma..."
+                value={novoEstigmaNome}
+                onChange={(e) => setNovoEstigmaNome(e.target.value)}
+                style={{ padding: '6px', backgroundColor: '#000', color: 'var(--text-primary)', border: '1px solid #444', borderRadius: '4px', fontSize: '0.85rem', width: '150px' }}
+              />
+              <button 
+                onClick={forjarEstigma}
+                style={{ backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid #444', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+              >
+                Forjar Tag
               </button>
             </div>
           </div>
